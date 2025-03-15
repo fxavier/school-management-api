@@ -2,13 +2,52 @@ version: '3.9'
 
 services:
   app:
+    container_name: schoolapp
     build:
       context: .
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     ports:
       - 8000:8000
     volumes:
       - ./app:/app
-   
+      - ./data/web:/vol/web
+
     environment:
       - SECRET_KEY=devsecretkey
       - DEBUG=1
+      - DB_HOST=db
+      - DB_NAME=school
+      - DB_USER=school
+      - DB_PASS=school
+
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: schooldb
+    restart: always
+    environment:
+      - POSTGRES_DB=school
+      - POSTGRES_USER=school
+      - POSTGRES_PASSWORD=school
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - 5432:5432
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
